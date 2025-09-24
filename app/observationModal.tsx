@@ -1,79 +1,98 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
+  TouchableOpacity,
   Button,
   StyleSheet,
-  TouchableOpacity,
   Image,
   Platform,
-  Alert,
+  Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCurrentPosition } from '../hooks/useCurrentPosition';
 
 export default function ObservationModal() {
   const router = useRouter();
+  const { location, loading, getLocation } = useCurrentPosition(); // ✅ on récupère getLocation
 
   const [photo, setPhoto] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // ✅ Récupère la position dès que la modale est ouverte
+  useEffect(() => {
+    getLocation();
+  }, []);
 
   const takePhoto = async () => {
     const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-    if (!granted) {
-      return Alert.alert(
-        'Permission refusée',
-        'Autorisez l’accès à la caméra dans les paramètres.'
-      );
-    }
-
+    if (!granted) return Alert.alert('Permission refusée', 'Autorisez la caméra.');
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
     });
-
     if (!result.canceled) setPhoto(result.assets[0].uri);
   };
 
-
   const pickFromGallery = async () => {
     const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!granted) {
-      return Alert.alert(
-        'Permission refusée',
-        'Autorisez l’accès à vos photos dans les paramètres.'
-      );
-    }
-
+    if (!granted) return Alert.alert('Permission refusée', 'Autorisez vos photos.');
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
     });
-
     if (!result.canceled) setPhoto(result.assets[0].uri);
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (event: any, selected?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) setDate(selectedDate);
+    if (selected) setDate(selected);
   };
 
-  const handleSubmit = () => {
-    console.log('Nouvelle observation :', { photo, name, date });
-    router.back();
+  const handleSubmit = async () => {
+    if (!location) {
+      return Alert.alert('Erreur', 'Position non disponible.');
+    }
+
+    try {
+      const newObservation = {
+        id: Date.now().toString(),
+        name,
+        date: date.toISOString(),
+        photo,
+        coordinate: [location.longitude, location.latitude],
+      };
+
+      const stored = await AsyncStorage.getItem('observations');
+      const list = stored ? JSON.parse(stored) : [];
+      list.push(newObservation);
+      await AsyncStorage.setItem('observations', JSON.stringify(list));
+
+      router.back(); // ✅ ferme simplement la modale
+    } catch (e) {
+      console.error('Erreur enregistrement', e);
+    }
   };
+
+  if (loading || !location) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Chargement de la position…</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.overlay}>
       <View style={styles.modal}>
         <Text style={styles.title}>Ajouter une observation</Text>
 
-        {/* Boutons photo */}
         <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
           <Text style={styles.photoButtonText}>📷 Prendre une photo</Text>
         </TouchableOpacity>
@@ -84,7 +103,6 @@ export default function ObservationModal() {
 
         {photo && <Image source={{ uri: photo }} style={styles.photoPreview} />}
 
-        {/* Nom */}
         <TextInput
           style={styles.input}
           placeholder="Nom de l'observation"
@@ -92,11 +110,7 @@ export default function ObservationModal() {
           onChangeText={setName}
         />
 
-        {/* Date */}
-        <TouchableOpacity
-          style={styles.dateButton}
-          onPress={() => setShowDatePicker(true)}
-        >
+        <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
           <Text>{date.toLocaleDateString('fr-FR')}</Text>
         </TouchableOpacity>
 
@@ -105,13 +119,11 @@ export default function ObservationModal() {
             value={date}
             mode="date"
             display="default"
-            onChange={handleDateChange}
             maximumDate={new Date()}
-            locale="fr-FR" // iOS
+            onChange={handleDateChange}
           />
         )}
 
-        {/* Boutons */}
         <View style={styles.buttons}>
           <Button title="Annuler" color="#888" onPress={() => router.back()} />
           <Button title="Enregistrer" onPress={handleSubmit} />
@@ -161,5 +173,4 @@ const styles = StyleSheet.create({
   },
   buttons: { flexDirection: 'row', justifyContent: 'space-between' },
 });
-
 

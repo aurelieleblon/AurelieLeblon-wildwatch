@@ -25,7 +25,7 @@ export default function ObservationModal() {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // ✅ Récupère la position dès que la modale est ouverte
+  // Récupère la position dès que la modale est ouverte
   useEffect(() => {
     getLocation();
   }, []);
@@ -74,7 +74,7 @@ export default function ObservationModal() {
       list.push(newObservation);
       await AsyncStorage.setItem('observations', JSON.stringify(list));
 
-      router.back(); // ✅ ferme simplement la modale
+      router.back();
     } catch (e) {
       console.error('Erreur enregistrement', e);
     }

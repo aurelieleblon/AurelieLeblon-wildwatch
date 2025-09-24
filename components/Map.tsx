@@ -46,23 +46,36 @@ export const Map: React.FC<MapProps> = ({ location }) => {
       />
 
       <MapboxGL.UserLocation visible={true} showsUserHeadingIndicator={true} />
+{lastObservation && (
+  <MapboxGL.PointAnnotation
+    id="observation"
+    coordinate={coord}
+    onSelected={() =>
+      router.push({
+        pathname: 'EditObservationModal',
+        params: {
+          id: lastObservation.id,
+          name: lastObservation.name,
+          date: lastObservation.date
+        }
+      })
+    }
+  >
+    <View style={styles.annotationContainer}>
+      <View style={styles.annotationBubble}>
+        <Text style={styles.obsTitle}>{lastObservation.name}</Text>
+        <Text style={styles.obsDate}>
+          {new Date(lastObservation.date).toLocaleDateString('fr-FR')}
+        </Text>
+        {lastObservation.photo && (
+          <Image source={{ uri: lastObservation.photo }} style={styles.photo} />
+        )}
+      </View>
+      <View style={styles.arrowDown} />
+    </View>
+  </MapboxGL.PointAnnotation>
+)}
 
-      {lastObservation && (
-        <MapboxGL.PointAnnotation id="observation" coordinate={coord}>
-          <View style={styles.annotationContainer}>
-            <View style={styles.annotationBubble}>
-              <Text style={styles.obsTitle}>{lastObservation.name}</Text>
-              <Text style={styles.obsDate}>
-                {new Date(lastObservation.date).toLocaleDateString('fr-FR')}
-              </Text>
-              {lastObservation.photo && (
-                <Image source={{ uri: lastObservation.photo }} style={styles.photo} />
-              )}
-            </View>
-            <View style={styles.arrowDown} />
-          </View>
-        </MapboxGL.PointAnnotation>
-      )}
     </MapboxGL.MapView>
   );
 };

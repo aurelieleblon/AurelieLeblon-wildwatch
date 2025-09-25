@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { View, Text, Image, StyleSheet, Animated } from 'react-native';
 import MapboxGL from '../config/mapbox';
 import { Location } from '../hooks/useCurrentPosition';
 import { MapStyles, DEFAULT_CAMERA_CONFIG } from '../config/mapbox';
@@ -18,6 +18,9 @@ export const Map: React.FC<MapProps> = ({ location }) => {
   const [lastObservation, setLastObservation] = useState<any | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // ✅ Valeur animée pour le marqueur
+  const dropAnim = useRef(new Animated.Value(-800)).current;
+
   const loadObservations = async () => {
     const stored = await AsyncStorage.getItem('observations');
     const parsed = stored ? JSON.parse(stored) : [];
@@ -30,6 +33,19 @@ export const Map: React.FC<MapProps> = ({ location }) => {
       setRefreshKey(k => k + 1);
     }, [])
   );
+
+  // Lance l’animation quand une observation est dispo
+  useEffect(() => {
+    if (lastObservation) {
+      dropAnim.setValue(-200); // remet en haut
+      Animated.spring(dropAnim, {
+        toValue: 0,
+        friction: 2,
+        tension: 120,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [lastObservation]);
 
   return (
     <MapboxGL.MapView
@@ -46,36 +62,46 @@ export const Map: React.FC<MapProps> = ({ location }) => {
       />
 
       <MapboxGL.UserLocation visible={true} showsUserHeadingIndicator={true} />
-{lastObservation && (
-  <MapboxGL.PointAnnotation
-    id="observation"
-    coordinate={coord}
-    onSelected={() =>
-      router.push({
-        pathname: 'EditObservationModal',
-        params: {
-          id: lastObservation.id,
-          name: lastObservation.name,
-          date: lastObservation.date
-        }
-      })
-    }
-  >
-    <View style={styles.annotationContainer}>
-      <View style={styles.annotationBubble}>
-        <Text style={styles.obsTitle}>{lastObservation.name}</Text>
-        <Text style={styles.obsDate}>
-          {new Date(lastObservation.date).toLocaleDateString('fr-FR')}
-        </Text>
-        {lastObservation.photo && (
-          <Image source={{ uri: lastObservation.photo }} style={styles.photo} />
-        )}
-      </View>
-      <View style={styles.arrowDown} />
-    </View>
-  </MapboxGL.PointAnnotation>
-)}
 
+      {lastObservation && (
+        <MapboxGL.PointAnnotation
+          id="observation"
+          coordinate={coord}
+          anchor={{ x: 0.5, y: 1 }}
+          onSelected={() =>
+            router.push({
+              pathname: 'EditObservationModal',
+              params: {
+                id: lastObservation.id,
+                name: lastObservation.name,
+                date: lastObservation.date
+              }
+            })
+          }
+        >
+          {/* ✅ Animated.View pour faire descendre le marqueur */}
+          <Animated.View style={{ transform: [{ translateY: dropAnim }] }}>
+            <Image
+              source={require('../assets/location.png')}
+              style={{ width: 40, height: 40 }}
+              resizeMode="contain"
+            />
+          </Animated.View>
+
+          <View style={styles.annotationContainer}>
+            <View style={styles.annotationBubble}>
+              <Text style={styles.obsTitle}>{lastObservation.name}</Text>
+              <Text style={styles.obsDate}>
+                {new Date(lastObservation.date).toLocaleDateString('fr-FR')}
+              </Text>
+              {lastObservation.photo && (
+                <Image source={{ uri: lastObservation.photo }} style={styles.photo} />
+              )}
+            </View>
+            <View style={styles.arrowDown} />
+          </View>
+        </MapboxGL.PointAnnotation>
+      )}
     </MapboxGL.MapView>
   );
 };
@@ -109,4 +135,5 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
 });
+
 

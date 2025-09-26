@@ -18,7 +18,7 @@ export const Map: React.FC<MapProps> = ({ location }) => {
   const [lastObservation, setLastObservation] = useState<any | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // ✅ Valeur animée pour le marqueur
+
   const dropAnim = useRef(new Animated.Value(-800)).current;
 
   const loadObservations = async () => {
@@ -34,10 +34,9 @@ export const Map: React.FC<MapProps> = ({ location }) => {
     }, [])
   );
 
-  // Lance l’animation quand une observation est dispo
   useEffect(() => {
     if (lastObservation) {
-      dropAnim.setValue(-200); // remet en haut
+      dropAnim.setValue(-200);
       Animated.spring(dropAnim, {
         toValue: 0,
         friction: 2,
@@ -66,7 +65,8 @@ export const Map: React.FC<MapProps> = ({ location }) => {
       {lastObservation && (
         <MapboxGL.PointAnnotation
           id="observation"
-          coordinate={coord}
+
+          coordinate={lastObservation.coordinate || coord}
           anchor={{ x: 0.5, y: 1 }}
           onSelected={() =>
             router.push({
@@ -74,12 +74,12 @@ export const Map: React.FC<MapProps> = ({ location }) => {
               params: {
                 id: lastObservation.id,
                 name: lastObservation.name,
-                date: lastObservation.date
-              }
+                date: lastObservation.date,
+              },
             })
           }
         >
-          {/* ✅ Animated.View pour faire descendre le marqueur */}
+
           <Animated.View style={{ transform: [{ translateY: dropAnim }] }}>
             <Image
               source={require('../assets/location.png')}
@@ -94,6 +94,7 @@ export const Map: React.FC<MapProps> = ({ location }) => {
               <Text style={styles.obsDate}>
                 {new Date(lastObservation.date).toLocaleDateString('fr-FR')}
               </Text>
+
               {lastObservation.photo && (
                 <Image source={{ uri: lastObservation.photo }} style={styles.photo} />
               )}
@@ -135,5 +136,3 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
 });
-
-

@@ -8,7 +8,9 @@ import {
   StyleSheet,
   Image,
   Platform,
-  Alert
+  Alert,
+  TouchableWithoutFeedback, // 👈 AJOUT
+  KeyboardAvoidingView
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,14 +20,13 @@ import { useCurrentPosition } from '../hooks/useCurrentPosition';
 
 export default function ObservationModal() {
   const router = useRouter();
-  const { location, loading, getLocation } = useCurrentPosition(); // ✅ on récupère getLocation
+  const { location, loading, getLocation } = useCurrentPosition();
 
   const [photo, setPhoto] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Récupère la position dès que la modale est ouverte
   useEffect(() => {
     getLocation();
   }, []);
@@ -89,47 +90,54 @@ export default function ObservationModal() {
   }
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.modal}>
-        <Text style={styles.title}>Ajouter une observation</Text>
+    <TouchableWithoutFeedback onPress={() => router.back()}>
+      <View style={styles.overlay}>
+        <TouchableWithoutFeedback onPress={() => {}}>
+          <KeyboardAvoidingView
+            style={styles.modal}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <Text style={styles.title}>Ajouter une observation</Text>
 
-        <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
-          <Text style={styles.photoButtonText}>📷 Prendre une photo</Text>
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
+              <Text style={styles.photoButtonText}>📷 Prendre une photo</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.photoButton} onPress={pickFromGallery}>
-          <Text style={styles.photoButtonText}>🖼️ Choisir depuis la galerie</Text>
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.photoButton} onPress={pickFromGallery}>
+              <Text style={styles.photoButtonText}>🖼️ Choisir depuis la galerie</Text>
+            </TouchableOpacity>
 
-        {photo && <Image source={{ uri: photo }} style={styles.photoPreview} />}
+            {photo && <Image source={{ uri: photo }} style={styles.photoPreview} />}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Nom de l'observation"
-          value={name}
-          onChangeText={setName}
-        />
+            <TextInput
+              style={styles.input}
+              placeholder="Nom de l'observation"
+              value={name}
+              onChangeText={setName}
+            />
 
-        <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-          <Text>{date.toLocaleDateString('fr-FR')}</Text>
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+              <Text>{date.toLocaleDateString('fr-FR')}</Text>
+            </TouchableOpacity>
 
-        {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display="default"
-            maximumDate={new Date()}
-            onChange={handleDateChange}
-          />
-        )}
+            {showDatePicker && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                display="default"
+                maximumDate={new Date()}
+                onChange={handleDateChange}
+              />
+            )}
 
-        <View style={styles.buttons}>
-          <Button title="Annuler" color="#888" onPress={() => router.back()} />
-          <Button title="Enregistrer" onPress={handleSubmit} />
-        </View>
+            <View style={styles.buttons}>
+              <Button title="Annuler" color="#888" onPress={() => router.back()} />
+              <Button title="Enregistrer" onPress={handleSubmit} />
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -173,4 +181,3 @@ const styles = StyleSheet.create({
   },
   buttons: { flexDirection: 'row', justifyContent: 'space-between' },
 });
-
